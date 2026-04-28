@@ -1,0 +1,23 @@
+/*
+  # Security Headers
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+
+  # Content Security Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; worker-src https://cdnjs.cloudflare.com blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+
+  # CORS restrito — substitua pelo seu domínio em produção
+  Access-Control-Allow-Origin: https://SEU-DOMINIO.com
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: Content-Type
+  Access-Control-Max-Age: 86400
+
+/cadastro.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/analisador-carteira.html
+  Cache-Control: no-store, no-cache, must-revalidate

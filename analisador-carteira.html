@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src https://cdnjs.cloudflare.com blob:; frame-ancestors 'none'; base-uri 'self'">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=()">
 <title>Analisador de Carteira — Acelerador Patrimonial</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -100,8 +105,9 @@ tbody td:first-child{color:var(--carvao)}
 
 /* GENERATE BAR */
 .generate-bar{background:var(--verde-deep);padding:28px 80px;display:flex;align-items:center;justify-content:space-between;gap:24px}
-.gen-info{color:rgba(245,240,232,0.5);font-size:13px;line-height:1.8}
+.gen-info{color:rgba(245,240,232,0.5);font-size:13px;line-height:1.8;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .gen-info strong{color:var(--champagne)}
+.gen-sep{margin:0 4px;opacity:.3;flex-shrink:0}
 
 /* PARSE STATUS */
 .parse-status{padding:14px 20px;border-radius:2px;margin-bottom:20px;font-size:13px;display:none}
@@ -219,6 +225,9 @@ tbody td:first-child{color:var(--carvao)}
 /* CONFLICT TAG */
 .tag-conflito{font-size:10px;background:var(--red-dim);color:var(--red);padding:2px 6px;border-radius:2px;margin-left:6px;font-weight:600;letter-spacing:1px;vertical-align:middle}
 
+/* REPORT RATE GRID */
+.rep-rate-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:2px}
+
 /* PRINT */
 @media print{
   nav,.steps-bar,#step-input,.rep-actions{display:none!important}
@@ -233,12 +242,108 @@ tbody td:first-child{color:var(--carvao)}
 
 /* RESPONSIVE */
 @media(max-width:768px){
-  nav{padding:0 24px}
-  .hero,.content,.generate-bar,.rep-section,.rep-actions,.rep-footer,.cta-section{padding-left:24px;padding-right:24px}
-  .steps-bar{padding:0 24px}
-  .form-grid,.compare-grid{grid-template-columns:1fr}
+  /* Nav */
+  nav{padding:0 16px}
+  .nav-brand{font-size:11px;letter-spacing:2px}
+  .nav-tag{font-size:9px}
+
+  /* Steps */
+  .steps-bar{padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .step-item{padding:12px 16px;font-size:9px;letter-spacing:1px;flex-shrink:0;white-space:nowrap}
+
+  /* Hero */
+  .hero{padding:40px 20px 28px}
+
+  /* Content */
+  .content{padding:32px 20px}
+  .section-title{font-size:22px}
+  .divider-gold{margin:24px 0}
+
+  /* Upload */
+  .upload-area{padding:28px 20px}
+  .upload-title{font-size:17px}
+
+  /* Form */
+  .form-grid{grid-template-columns:1fr}
+  .form-input,.td-input{font-size:16px!important}
+  .td-select{font-size:15px!important}
+
+  /* Table — scroll horizontal */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -20px 24px;padding:0 20px 6px}
+  .table-wrap::-webkit-scrollbar{height:3px}
+  .table-wrap::-webkit-scrollbar-thumb{background:var(--champagne);border-radius:2px;opacity:.5}
+  table{min-width:620px;font-size:12px}
+  thead th{padding:10px 12px}
+  tbody td{padding:9px 12px}
+
+  /* Generate bar */
+  .generate-bar{flex-direction:column;gap:14px;padding:20px;align-items:stretch}
+  .gen-info{justify-content:center;font-size:12px;gap:3px 6px;text-align:center}
+  .gen-sep{display:none}
+  .generate-bar .btn-large{width:100%;justify-content:center}
+
+  /* Buttons — touch target */
+  .btn{min-height:44px}
+  .btn-large{padding:14px 24px}
+
+  /* Report cover */
+  .report-cover{padding:56px 20px;min-height:unset}
+  .rc-eye{font-size:8px;letter-spacing:3px}
+  .rc-divider{margin:20px auto}
+  .rc-meta{gap:24px;margin-top:28px}
+  .rc-meta-item .val{font-size:16px}
+  .rc-brand{display:none}
+
+  /* Rep sections */
+  .rep-section{padding:40px 20px}
+  .rep-eye{font-size:8px;letter-spacing:3px}
+  .rep-title{font-size:clamp(22px,6vw,32px)}
+  .rep-desc{font-size:13px;margin-bottom:20px}
+
+  /* Rate grid (report) */
+  .rep-rate-grid{grid-template-columns:1fr!important}
+
+  /* KPI */
   .kpi-grid{grid-template-columns:1fr 1fr}
+  .kpi-box{padding:18px 12px}
+  .kpi-num{font-size:clamp(14px,4.5vw,22px)}
+
+  /* Compare */
+  .compare-grid{grid-template-columns:1fr}
+  .compare-col{padding:24px 18px}
+  .c-item{font-size:12px}
+
+  /* Savings */
+  .savings-box{padding:32px 20px}
+  .sav-num{font-size:clamp(28px,7vw,44px)}
+
+  /* Conflict card */
+  .conflict-card{padding:18px}
+  .cc-top{flex-direction:column;gap:8px;align-items:flex-start}
+  .cc-val{font-size:18px}
+  .cc-cost{text-align:left}
+
+  /* Bars */
   .bars-wrap{grid-template-columns:1fr}
+
+  /* Rep actions */
+  .rep-actions{flex-direction:column;align-items:stretch;padding:12px 16px;gap:10px}
+  .rep-actions .btn{width:100%;justify-content:center}
+  .rep-actions-hint{display:none}
+
+  /* Rep footer */
+  .rep-footer{flex-direction:column;gap:8px;padding:28px 20px}
+  .rf-meta{font-size:10px}
+
+  /* CTA */
+  .cta-section{padding:48px 20px}
+  .cta-section h2{font-size:clamp(26px,7vw,36px)}
+}
+
+@media(max-width:400px){
+  .kpi-grid{grid-template-columns:1fr}
+  .rc-meta{gap:16px}
+  .step-item span:not(.step-num){display:none}
 }
 </style>
 </head>
@@ -336,12 +441,16 @@ tbody td:first-child{color:var(--carvao)}
 
   <div class="generate-bar">
     <div class="gen-info">
-      Produtos: <strong id="g-count">0</strong> &nbsp;|&nbsp;
-      Patrimônio: <strong id="g-patrim">R$ 0</strong> &nbsp;|&nbsp;
-      Taxa média atual: <strong id="g-avgpct" style="color:#e8a0a0">0,00%</strong> &nbsp;|&nbsp;
-      Custo anual atual: <strong id="g-comm" style="color:#e8a0a0">R$ 0</strong> &nbsp;|&nbsp;
-      Custo no modelo fee: <strong id="g-fee" style="color:#88d4a8">R$ 0</strong> &nbsp;|&nbsp;
-      <span id="g-div-wrap" style="display:none">Dividendos (informativo): <strong id="g-dividends" style="color:var(--champagne)">R$ 0</strong></span>
+      <span>Produtos: <strong id="g-count">0</strong></span>
+      <span class="gen-sep">|</span>
+      <span>Patrimônio: <strong id="g-patrim">R$ 0</strong></span>
+      <span class="gen-sep">|</span>
+      <span>Taxa atual: <strong id="g-avgpct" style="color:#e8a0a0">0,00%</strong></span>
+      <span class="gen-sep">|</span>
+      <span>Custo atual: <strong id="g-comm" style="color:#e8a0a0">R$ 0</strong></span>
+      <span class="gen-sep">|</span>
+      <span>Custo fee: <strong id="g-fee" style="color:#88d4a8">R$ 0</strong></span>
+      <span id="g-div-wrap" style="display:none"><span class="gen-sep">|</span><span>Dividendos: <strong id="g-dividends" style="color:var(--champagne)">R$ 0</strong></span></span>
     </div>
     <button class="btn btn-primary btn-large" onclick="genReport()">Gerar Diagnóstico →</button>
   </div>
@@ -368,6 +477,18 @@ const BRAND = {
   name: 'Acelerador Patrimonial',
   tagline: 'Diagnóstico Patrimonial',
 };
+
+// ══════════════════════════════════════════
+// PRÉ-PREENCHIMENTO VIA CADASTRO
+// ══════════════════════════════════════════
+(function loadLead() {
+  try {
+    const lead = JSON.parse(localStorage.getItem('ap_lead') || 'null');
+    if (!lead) return;
+    const nomeEl = document.getElementById('cli-name');
+    if (nomeEl && !nomeEl.value && lead.nome) nomeEl.value = lead.nome;
+  } catch(e) {}
+})();
 
 // ══════════════════════════════════════════
 // ESTRUTURA DE FEE
@@ -1219,7 +1340,7 @@ function genReport() {
   <div class="rep-desc">Analisamos ${products.length} produto(s) com patrimônio total de ${BRL(total)}${cAdv?' alocados em '+esc(cAdv):''}. Identificamos ${highRisk.length} produto(s) com alto potencial de conflito de interesse, representando ${PCT(hrPct,1)} do patrimônio. <strong style="color:var(--champagne)">A taxa média de custo atual estimada é ${F2(avgCommPct)}</strong> — acima do dobro do modelo fee-based.</div>
 
   <!-- Taxa média em destaque -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:2px">
+  <div class="rep-rate-grid" style="gap:2px;margin-bottom:2px">
     <div style="background:rgba(192,57,43,0.18);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px">
       <div>
         <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(245,240,232,0.4);margin-bottom:6px">Taxa Média — Modelo Atual</div>
