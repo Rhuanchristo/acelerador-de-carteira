@@ -1,0 +1,121 @@
+{
+  "produtos": [
+    {
+      "tipo": "Renda Variável",
+      "nome": "ALOS3",
+      "valor": 3566.15
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "AXIA6",
+      "valor": 2709.6
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "BPAC11",
+      "valor": 2742.98
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "CXSE3",
+      "valor": 1719.5
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "ECOR3",
+      "valor": 920.04
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "EQTL3",
+      "valor": 2737.92
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "ITSA4",
+      "valor": 4480.62
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "PETR4",
+      "valor": 2440.35
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "SMTO3",
+      "valor": 672.42
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "SUZB3",
+      "valor": 2235.5
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "TEND3",
+      "valor": 1582.56
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "TIMS3",
+      "valor": 1618.56
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "TUPY3",
+      "valor": 872.96
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "VALE3",
+      "valor": 4479.56
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "VULC3",
+      "valor": 1576.61
+    },
+    {
+      "tipo": "Renda Fixa",
+      "nome": "XP Cripto - Alta Limitada -y - BANCO XP SA////",
+      "valor": 5645.05
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "ALZR17",
+      "valor": 49568.64
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "HGBS15",
+      "valor": 19985.56
+    },
+    {
+      "tipo": "Renda Variável",
+      "nome": "RBRR11",
+      "valor": 250.26
+    },
+    {
+      "tipo": "Renda Fixa",
+      "nome": "CDB PRE DU CDBTWV//// +%",
+      "valor": 50558.55
+    },
+    {
+      "tipo": "Renda Fixa",
+      "nome": "CDB PRE DU CDBNSWK//// +%",
+      "valor": 24487.61
+    },
+    {
+      "tipo": "Renda Fixa",
+      "nome": "CDB FLU CDBYY//// IPC-A +%",
+      "valor": 12462.59
+    }
+  ],
+  "resumo": {
+    "totalRendaFixa": 93153.8,
+    "totalRendaVariavel": 104159.79,
+    "total": 197313.59,
+    "percentualRF": 47.21,
+    "percentualRV": 52.79
+  }
+}
