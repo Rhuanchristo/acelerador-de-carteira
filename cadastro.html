@@ -6,7 +6,7 @@
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co https://acelerador-carteira.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://acelerador-carteira.onrender.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=()">
 <title>Acelerador Patrimonial — Cadastro</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -257,8 +257,13 @@ document.getElementById('f-tel').addEventListener('input', function() {
   let v = this.value.replace(/\D/g, '');
   if (v.length > 11) v = v.slice(0, 11);
   if (v.length <= 10) {
-    v = v.replace(/^(\d{0,2})(\d{0,4})(\d{0,4})$/, (_, a, b, c) =>
-      a ? `(${a}${b ? `) ${b}` : ''}${c ? `-${c}` : ''}`) : '');
+    v = v.replace(/^(\d{0,2})(\d{0,4})(\d{0,4})$/, function(_, a, b, c) {
+      if (!a) return '';
+      var r = '(' + a;
+      if (b) r += ') ' + b;
+      if (c) r += '-' + c;
+      return r;
+    });
   } else {
     v = v.replace(/^(\d{2})(\d{5})(\d{0,4})$/, '($1) $2-$3');
   }
