@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: acelerador-carteira
+    runtime: node
+    buildCommand: npm install && pip install -r requirements.txt
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        generateValue: false
+        value: 10000
+    plan: free

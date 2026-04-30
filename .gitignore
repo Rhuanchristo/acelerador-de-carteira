@@ -1,0 +1,9 @@
+node_modules/
+uploads/
+*.json
+!package.json
+!render.yaml
+__pycache__/
+*.pyc
+.env
+.DS_Store

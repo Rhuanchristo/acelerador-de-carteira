@@ -1,168 +1,210 @@
-import PyPDF2
-import re
-import json
 import sys
+import json
+import re
 
-def extrair_posicao_detalhada(pdf_path):
+def extrair(pdf_path):
     try:
-        with open(pdf_path, 'rb') as file:
-            pdf_reader = PyPDF2.PdfReader(file)
-            texto_completo = ""
+        import pdfplumber
+    except ImportError:
+        import subprocess
+        subprocess.run([sys.executable, '-m', 'pip', 'install', 'pdfplumber', '-q'])
+        import pdfplumber
 
-            # Extrair texto de todas as páginas
-            print(f"Processando {len(pdf_reader.pages)} páginas...")
-            for i, page in enumerate(pdf_reader.pages, 1):
-                texto_completo += f"\n--- PÁGINA {i} ---\n"
-                texto_completo += page.extract_text() + "\n"
+    produtos = []
+    seen = set()
+    meta = {}
 
-            # Limpar caracteres problemáticos
-            texto_completo = texto_completo.encode('ascii', 'ignore').decode('ascii')
+    def add(nome, tipo, valor):
+        if not nome or valor < 0.01:
+            return
+        nome = nome.strip()[:80]
+        k = nome[:20].lower() + '|' + str(round(valor))
+        if k in seen:
+            return
+        seen.add(k)
+        produtos.append({'nome': nome, 'tipo': tipo, 'valor': valor})
 
-            linhas = texto_completo.split('\n')
-            produtos = []
+    def parse_val(s):
+        if not s:
+            return 0
+        m = re.search(r'([\d.]+,\d{2})', s.replace(' ', ''))
+        if not m:
+            return 0
+        try:
+            return float(m.group(1).replace('.', '').replace(',', '.'))
+        except:
+            return 0
 
-            # Padrões para identificar valores monetários
-            padrao_valor = re.compile(r'R?\$?\s*([\d.,]+(?:\.\d{3})*,\d{2})')
+    def classifica_fundo(nome):
+        n = nome.upper()
+        # Fundos de infraestrutura incentivados = baixa taxa
+        if 'INFRA' in n or 'INCENTIVADO' in n or 'ELBRUS' in n:
+            return 'Fundo Baixa Taxa'
+        # Fundos de renda fixa simples = baixa taxa
+        if 'SIMPLES' in n or 'CASH' in n or 'RF' in n or 'RENDA FIXA' in n:
+            return 'Fundo Baixa Taxa'
+        # Fundos multimercado advisory = alta taxa
+        if 'MULTIMERCADO' in n or 'ADVISORY' in n or 'VERTEX' in n or 'QUEST' in n:
+            return 'Fundo Alta Taxa'
+        return 'Fundo Alta Taxa'
 
-            # Padrões para identificar tipos de produtos
-            padroes_rf = ['CDB', 'LCI', 'LCA', 'TESOURO', 'DEBENTURE', 'CRI', 'CRA', 'RENDA FIXA', 'XP CRIPTO', 'BANCO']
-            padroes_rv = ['AÇÕES', 'AÇÃO', 'FII', 'FUNDO', 'ETF', 'BDR', 'RENDA VARIÁVEL']
-            padroes_acoes = ['3', '4', '5', '6', '11']  # Sufixos de ações
+    SKIP_RF = re.compile(
+        r'^(Ativo|Aplica|Vencimento|Dispon|Garantia|Bloqueio|Valor|Posi|Taxa|Mercado|'
+        r'Judicial|Carencia|POSI|DETALHADA|ATIVOS|Renda|Fixa|\d{2}/\d{2}/\d{4}|[A-Z]{3}/\d{4})$',
+        re.I
+    )
 
-            # Palavras a ignorar
-            skip_words = ['TOTAL', 'SUBTOTAL', 'PATRIMONIO', 'INVESTIMENTO', 'SALDO', 'DISPONIVEL',
-                         'POSICAO', 'CONSOLIDADA', 'DETALHADA', 'PRECIFICACAO', 'MERCADO',
-                         'QUANTIDADE', 'PRECO', 'COTACAO', 'RENTABILIDADE', 'VENCIMENTO',
-                         'CUSTODIA', 'REMUNERADA', 'PAPEL', 'FINANCEIRO', 'ULTIMA']
+    with pdfplumber.open(pdf_path) as pdf:
+        for pg_num, page in enumerate(pdf.pages, 1):
+            words = page.extract_words(x_tolerance=3, y_tolerance=3)
+            if not words:
+                continue
 
-            produtos_vistos = set()
-            linha_anterior = ""
+            # Agrupa por top (y) com tolerancia 3px
+            rows = {}
+            for w in words:
+                y = round(w['top'] / 3) * 3
+                if y not in rows:
+                    rows[y] = []
+                rows[y].append(w)
+            sorted_rows = sorted(rows.items())
 
-            for i, linha in enumerate(linhas):
-                linha_upper = linha.upper().strip()
-
-                # Pula linhas vazias ou muito curtas
-                if len(linha_upper) < 3:
-                    linha_anterior = linha
-                    continue
-
-                # Pula cabeçalhos e totais
-                if any(skip in linha_upper for skip in skip_words):
-                    linha_anterior = linha
-                    continue
-
-                # Verifica se é uma ação (ticker com 4-6 caracteres + número)
-                ticker_match = re.match(r'^([A-Z]{4}\d{1,2})\s', linha_upper)
-                if ticker_match:
-                    ticker = ticker_match.group(1)
-                    valores = padrao_valor.findall(linha)
-
-                    if valores:
-                        # Pega o último valor (geralmente é a posição)
-                        valor_str = valores[-1].replace('.', '').replace(',', '.')
-                        try:
-                            valor = float(valor_str)
-                            if valor >= 50 and ticker not in produtos_vistos:
-                                produtos_vistos.add(ticker)
-                                produtos.append({
-                                    'tipo': 'Renda Variável',
-                                    'nome': ticker,
-                                    'valor': valor
-                                })
-                        except:
-                            pass
-                    linha_anterior = linha
-                    continue
-
-                # Verifica se é Renda Fixa
-                is_rf = any(padrao in linha_upper for padrao in padroes_rf)
-                if is_rf:
-                    valores = padrao_valor.findall(linha)
-                    if valores:
-                        # Pega o último valor (geralmente é a posição)
-                        valor_str = valores[-1].replace('.', '').replace(',', '.')
-                        try:
-                            valor = float(valor_str)
-                            if valor >= 50:
-                                # Nome do produto: limpa valores e datas
-                                nome = linha.strip()
-                                nome = re.sub(r'R?\$?\s*[\d.,]+', '', nome)
-                                nome = re.sub(r'\d{2}/\d{2}/\d{4}', '', nome)
-                                nome = re.sub(r'\d+[,.]?\d*\s*%', '', nome)
-                                nome = re.sub(r'\s{2,}', ' ', nome).strip()[:100]
-
-                                if len(nome) >= 5:
-                                    chave = f"{nome[:30]}_{int(valor)}"
-                                    if chave not in produtos_vistos:
-                                        produtos_vistos.add(chave)
-                                        produtos.append({
-                                            'tipo': 'Renda Fixa',
-                                            'nome': nome,
-                                            'valor': valor
-                                        })
-                        except:
+            # Pagina 2: extrai meta dados (cliente, patrimonio, saldo)
+            if pg_num == 2:
+                for y, row in sorted_rows:
+                    row_s = sorted(row, key=lambda w: w['x0'])
+                    line = ' '.join(w['text'] for w in row_s)
+                    # Cliente e conta
+                    if 'Cliente:' in line:
+                        m = re.search(r'Cliente:(.+?)Conta:(\d+)', line)
+                        if m:
+                            meta['cliente'] = m.group(1).strip()
+                            meta['conta'] = m.group(2).strip()
+                        m2 = re.search(r'Perfil:(\w+)', line)
+                        if m2:
+                            meta['perfil'] = m2.group(1).strip()
+                    # Patrimonio, investimento, saldo
+                    if y == round(120/3)*3 or (120 <= y <= 126):
+                        vals = re.findall(r'R\$\s*([\d.]+,\d{2})', line)
+                        if len(vals) >= 3:
+                            meta['patrimonio'] = parse_val('R$ ' + vals[0])
+                            meta['investimento'] = parse_val('R$ ' + vals[1])
+                            meta['saldo_conta'] = parse_val('R$ ' + vals[2])
+                        elif len(vals) == 1:
+                            # Valores podem estar em palavras separadas
                             pass
 
-                linha_anterior = linha
+            is_acoes  = pg_num in [2, 3]
+            is_rf     = pg_num in [5, 6]
+            is_fundos = pg_num in [7, 8, 9]
+            is_coe    = pg_num == 10
+            is_fii    = pg_num == 11
+            if not any([is_acoes, is_rf, is_fundos, is_coe, is_fii]):
+                continue
 
-            # Calcular totais
-            total_rf = sum(p['valor'] for p in produtos if p['tipo'] == 'Renda Fixa')
-            total_rv = sum(p['valor'] for p in produtos if p['tipo'] == 'Renda Variável')
-            total = total_rf + total_rv
+            if is_acoes or is_fii:
+                TICKER = re.compile(r'^[A-Z]{4}\d{1,2}$')
+                for y, row in sorted_rows:
+                    row_s = sorted(row, key=lambda w: w['x0'])
+                    first = row_s[0]['text'].strip()
+                    if not TICKER.match(first):
+                        continue
+                    val_words = [w for w in row_s if w['x0'] > 680]
+                    if not val_words:
+                        continue
+                    val_str = ' '.join(w['text'] for w in val_words)
+                    v = parse_val(val_str)
+                    if v > 0:
+                        tipo = 'FII' if is_fii else 'Acoes'
+                        add(first, tipo, v)
 
-            resultado = {
-                'produtos': produtos,
-                'resumo': {
-                    'totalRendaFixa': total_rf,
-                    'totalRendaVariavel': total_rv,
-                    'total': total,
-                    'percentualRF': round((total_rf / total * 100) if total > 0 else 0, 2),
-                    'percentualRV': round((total_rv / total * 100) if total > 0 else 0, 2)
-                }
-            }
+            elif is_rf:
+                rf_name = []
+                for y, row in sorted_rows:
+                    row_s = sorted(row, key=lambda w: w['x0'])
+                    val_words = [w for w in row_s if 670 <= w['x0'] <= 700]
+                    if val_words:
+                        v = parse_val(' '.join(w['text'] for w in val_words))
+                        if v > 0 and rf_name:
+                            nome = ' '.join(rf_name)
+                            if not re.search(r'DETALHADA|ATIVOS|Renda Fixa|\d+[,.]\d+%', nome, re.I):
+                                add(nome, 'Renda Fixa', v)
+                        rf_name = []
+                        continue
+                    name_words = [w for w in row_s if w['x0'] < 200]
+                    if not name_words:
+                        continue
+                    line = ' '.join(w['text'] for w in name_words).strip()
+                    if line and not SKIP_RF.match(line) and not re.match(r'^\d+$', line):
+                        rf_name.append(line)
 
-            return resultado
+            elif is_fundos:
+                for y, row in sorted_rows:
+                    row_s = sorted(row, key=lambda w: w['x0'])
+                    first = row_s[0]
+                    if first['x0'] > 65:
+                        continue
+                    val_words = [w for w in row_s if 660 <= w['x0'] <= 695]
+                    if not val_words:
+                        continue
+                    v = parse_val(' '.join(w['text'] for w in val_words))
+                    if v <= 0:
+                        continue
+                    nome_completo = ' '.join(w['text'] for w in row_s if w['x0'] < 270).strip()
+                    if len(nome_completo) < 3:
+                        continue
+                    SKIP = re.compile(r'^(Ativo|Data|Valor|Qtd|Em|Posi|Cota)$', re.I)
+                    if SKIP.match(nome_completo):
+                        continue
+                    add(nome_completo, 'Fundo', v)
 
-    except Exception as e:
-        print(f"Erro ao processar PDF: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
+            elif is_coe:
+                for y, row in sorted_rows:
+                    row_s = sorted(row, key=lambda w: w['x0'])
+                    first = row_s[0]
+                    if first['x0'] > 65:
+                        continue
+                    nome = ' '.join(w['text'] for w in row_s if w['x0'] < 320).strip()
+                    if len(nome) < 4:
+                        continue
+                    SKIP = re.compile(r'^(Ativo|Emissor|Data|Vencimento|Qtd|Preco|Valor|Posi)$', re.I)
+                    if SKIP.match(nome):
+                        continue
+                    val_words = [w for w in row_s if 668 <= w['x0'] <= 700]
+                    if not val_words:
+                        continue
+                    v = parse_val(' '.join(w['text'] for w in val_words))
+                    if v > 0:
+                        add(nome, 'COE', v)
 
-if __name__ == "__main__":
-    # Aceita caminho do PDF como argumento ou usa o padrão
-    if len(sys.argv) > 1:
-        pdf_path = sys.argv[1]
-    else:
-        pdf_path = r'C:\Users\blank\Downloads\Posicao Detalhada - 3924287.pdf'
+    # Adiciona saldo em conta se disponivel
+    if meta.get('saldo_conta', 0) > 0:
+        add('Saldo em Conta', 'Saldo', meta['saldo_conta'])
 
-    resultado = extrair_posicao_detalhada(pdf_path)
+    # Aplica classificacao correta dos fundos
+    for p in produtos:
+        if p['tipo'] == 'Fundo':
+            p['tipo'] = classifica_fundo(p['nome'])
 
-    if resultado:
-        print("\n=== RESUMO DA CARTEIRA ===")
-        print(f"Total: R$ {resultado['resumo']['total']:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-        print(f"Renda Fixa: R$ {resultado['resumo']['totalRendaFixa']:,.2f} ({resultado['resumo']['percentualRF']}%)".replace(',', 'X').replace('.', ',').replace('X', '.'))
-        print(f"Renda Variável: R$ {resultado['resumo']['totalRendaVariavel']:,.2f} ({resultado['resumo']['percentualRV']}%)".replace(',', 'X').replace('.', ',').replace('X', '.'))
+    return produtos, meta
 
-        print(f"\n=== PRODUTOS ENCONTRADOS ({len(resultado['produtos'])}) ===")
 
-        # Agrupa por tipo
-        rf_produtos = [p for p in resultado['produtos'] if p['tipo'] == 'Renda Fixa']
-        rv_produtos = [p for p in resultado['produtos'] if p['tipo'] == 'Renda Variável']
+if __name__ == '__main__':
+    pdf_path = sys.argv[1] if len(sys.argv) > 1 else r'C:\Users\blank\Downloads\Posicao Detalhada - 3924287.pdf'
+    json_out = sys.argv[2] if len(sys.argv) > 2 else 'carteira-extraida.json'
 
-        if rf_produtos:
-            print("\n--- RENDA FIXA ---")
-            for i, p in enumerate(rf_produtos, 1):
-                print(f"{i}. {p['nome']} - R$ {p['valor']:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+    produtos, meta = extrair(pdf_path)
 
-        if rv_produtos:
-            print("\n--- RENDA VARIÁVEL ---")
-            for i, p in enumerate(rv_produtos, 1):
-                print(f"{i}. {p['nome']} - R$ {p['valor']:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+    total = sum(p['valor'] for p in produtos)
+    for p in produtos:
+        print(f"[{p['tipo']}] {p['nome']} = R$ {p['valor']:,.2f}")
+    print(f"\nTotal: {len(produtos)} produtos = R$ {total:,.2f}")
 
-        # Salvar JSON
-        with open('carteira-extraida.json', 'w', encoding='utf-8') as f:
-            json.dump(resultado, f, ensure_ascii=False, indent=2)
-
-        print("\nDados salvos em carteira-extraida.json")
-
+    resultado = {
+        'produtos': produtos,
+        'meta': meta,
+        'resumo': {'total': total}
+    }
+    with open(json_out, 'w', encoding='utf-8') as f:
+        json.dump(resultado, f, ensure_ascii=False, indent=2)
+    print(f"Salvo em {json_out}")

@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="DENY">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src https://cdnjs.cloudflare.com blob:; frame-ancestors 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=()">
-<title>Analisador de Carteira — Acelerador Patrimonial</title>
+<title>Analisador de Carteira — Acelerador Patrimonial v2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -404,6 +403,17 @@ tbody td:first-child{color:var(--carvao)}
     <input type="file" id="file-input" accept=".pdf,.csv" style="display:none" onchange="handleFile(this)" />
     <div id="parse-status" class="parse-status"></div>
 
+    <!-- Importar JSON -->
+    <div style="text-align:center;margin:20px 0;padding:16px;background:rgba(201,169,110,0.05);border-radius:4px;border:1px solid rgba(201,169,110,0.2)">
+      <p style="font-size:12px;color:var(--cinza);margin-bottom:12px">
+        <strong>Alternativa:</strong> Se o PDF não foi extraído automaticamente, use o script Python para gerar o JSON
+      </p>
+      <button class="btn btn-secondary" onclick="document.getElementById('json-input').click()" style="font-size:11px;padding:10px 20px">
+        📥 Importar JSON Extraído
+      </button>
+      <input type="file" id="json-input" accept=".json" style="display:none" onchange="handleJSON(this)" />
+    </div>
+
     <div class="divider-gold"></div>
 
     <!-- Products -->
@@ -597,6 +607,11 @@ const TIPOS = {
     commPct: 0.015, amort: 1, upfront: false,
     desc: 'Produto não classificado', flags:[]
   },
+  'Saldo em Conta': {
+    label:'Saldo em Conta', risk:'baixo',
+    commPct: 0, amort: 0, upfront: false,
+    desc: 'Saldo disponível em conta corrente', flags:[]
+  },
 };
 
 // ══════════════════════════════════════════
@@ -724,12 +739,128 @@ ua.addEventListener('drop', e=>{ e.preventDefault(); ua.classList.remove('drag-o
 
 function handleFile(inp) { if(inp.files[0]) processFile(inp.files[0]); }
 
+function handleJSON(inp) {
+  if (!inp.files[0]) return;
+  const file = inp.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Limpa produtos existentes
+      products = [];
+
+      // Importa produtos do JSON
+      if (data.produtos && Array.isArray(data.produtos)) {
+        data.produtos.forEach(p => {
+          if (p.valor > 0) {
+            addRow({
+              name: p.nome,
+              type: detectType(p.nome),
+              value: p.valor.toString(),
+              issuer: '',
+              adminFee: '',
+              comm: ''
+            });
+          }
+        });
+
+        updateSummary();
+
+        const resumo = data.resumo || {};
+        const total = resumo.total || 0;
+        const totalRF = resumo.totalRendaFixa || 0;
+        const totalRV = resumo.totalRendaVariavel || 0;
+        const totalFundos = resumo.totalFundos || 0;
+
+        status('ok',
+          `✓ <strong>${data.produtos.length} produto(s)</strong> importado(s) com sucesso!<br>` +
+          `Total: <strong>${BRL(total)}</strong> ` +
+          `(RF: ${BRL(totalRF)} | RV: ${BRL(totalRV)}` +
+          (totalFundos > 0 ? ` | Fundos: ${BRL(totalFundos)}` : '') + `)`
+        );
+      } else {
+        status('err', '⚠ Formato JSON inválido. Certifique-se de usar o arquivo gerado pelo script Python.');
+      }
+    } catch (error) {
+      status('err', `⚠ Erro ao ler JSON: ${error.message}`);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+
 function processFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   status('', `⏳ Processando "${file.name}"...`);
   if (ext==='csv') { const r=new FileReader(); r.onload=e=>parseCSV(e.target.result); r.readAsText(file,'UTF-8'); }
-  else if (ext==='pdf') parsePDF(file);
+  else if (ext==='pdf') {
+    // Tenta primeiro o servidor Python (mais confiável para PDF da XP)
+    tryPythonExtraction(file).catch(() => {
+      parsePDF(file);
+    });
+  }
   else status('err','⚠ Formato não suportado. Use PDF ou CSV.');
+}
+
+async function tryPythonExtraction(file) {
+  try {
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    console.log('[Python] Enviando PDF para servidor...');
+    const response = await fetch('/api/extract-pdf', {
+      method: 'POST',
+      body: formData
+    });
+
+    console.log('[Python] Resposta:', response.status);
+    if (!response.ok) {
+      throw new Error('Servidor não disponível: ' + response.status);
+    }
+
+    const data = await response.json();
+    console.log('[Python] Produtos recebidos:', data.produtos?.length);
+
+    if (data.produtos && data.produtos.length > 0) {
+      products = [];
+      data.produtos.forEach(p => {
+        if (p.valor > 0) {
+          // Mapeia tipos do Python para tipos do sistema
+          const tipoMap = {
+            'Acoes':           'Ações',
+            'FII':             'FII',
+            'Fundo Alta Taxa': 'Fundo Alta Taxa',
+            'Fundo Media Taxa':'Fundo Média Taxa',
+            'Fundo Baixa Taxa':'Fundo Baixa Taxa',
+            'Renda Fixa':      'CDB Banco Pequeno',
+            'COE':             'COE',
+            'Saldo':           'Saldo em Conta'
+          };
+          const tipo = tipoMap[p.tipo] || detectType(p.nome);
+          addRow({
+            name: p.nome,
+            type: tipo,
+            value: p.valor.toString(),
+            issuer: '',
+            adminFee: '',
+            comm: ''
+          });
+        }
+      });
+
+      updateSummary();
+      const total = data.resumo?.total || 0;
+      const cliente = data.meta?.cliente ? `<br>Cliente: <strong>${data.meta.cliente}</strong> | Conta: ${data.meta.conta}` : '';
+      const patrimonio = data.meta?.patrimonio ? ` | Patrimônio XP: <strong>${BRL(data.meta.patrimonio)}</strong>` : '';
+      status('ok', `✓ <strong>${data.produtos.length} produto(s)</strong> extraído(s) com sucesso! Total: <strong>${BRL(total)}</strong>${patrimonio}${cliente}`);
+    } else {
+      throw new Error('Nenhum produto extraído');
+    }
+  } catch (error) {
+    console.log('[Python] Falhou, usando PDF.js...', error.message);
+    throw error;
+  }
 }
 
 function status(type, msg) {
@@ -812,7 +943,19 @@ async function parsePDF(file) {
       document.getElementById('cli-name').value = cm[1].trim();
     }
 
-    if (result.products.length > 0) {
+    // Captura nome do cliente no formato "Posição Detalhada"
+    const cmPos = fullText.match(/Cliente:\s*([A-ZÁÉÍÓÚÀÃÕÇ][^\n]{3,50}?)(?:Conta:|$)/i);
+    if (cmPos && !document.getElementById('cli-name').value) {
+      document.getElementById('cli-name').value = cmPos[1].trim();
+    }
+
+    // Tenta primeiro extração XY (Posição Detalhada XP) - tem prioridade
+    const posResult = extractPosicaoDetalhadaXY(allItems);
+    if (posResult.length > 0) {
+      posResult.forEach(p => addRow(p));
+      updateSummary();
+      status('warn', `✓ <strong>${posResult.length} ativo(s)</strong> extraído(s) (${pdf_pageCount} pág.). Revise os dados antes de gerar o relatório.`);
+    } else if (result.products.length > 0) {
       dividends = result.dividends;
       result.products.sort((a,b) => b.value - a.value).forEach(p => addRow(p));
       updateSummary();
@@ -829,6 +972,151 @@ async function parsePDF(file) {
   } catch(e) {
     status('err',`⚠ Erro ao ler o PDF: ${e.message}. Tente exportar como CSV ou adicione manualmente.`);
   }
+}
+
+// ── Extração específica para Posição Detalhada XP usando coordenadas X,Y ──
+function extractPosicaoDetalhadaXY(items) {
+  // Verifica se e formato Posicao Detalhada XP
+  const fullText = items.map(i => i.str).join(' ');
+  const hasPOSI = /P\s*O\s*S\s*I/i.test(fullText);
+  const hasDETALH = /D\s*E\s*T\s*A\s*L\s*H\s*A\s*D\s*A/i.test(fullText);
+  console.log('[XP] items:', items.length, 'hasPOSI:', hasPOSI, 'hasDETALH:', hasDETALH);
+  if (!hasPOSI || !hasDETALH) return [];
+
+  const products = [];
+  const seen = new Set();
+
+  function toNum(str) {
+    if (!str) return 0;
+    const m = str.replace(/\s/g,'').match(/([\d.]+,\d{2})$/);
+    if (!m) return 0;
+    return parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+  }
+
+  function add(name, type, value) {
+    if (!name || value < 0.01) return;
+    name = name.trim().replace(/\s{2,}/g,' ').substring(0,80);
+    if (name.length < 2) return;
+    const k = name.substring(0,25).toLowerCase()+'|'+ Math.round(value);
+    if (seen.has(k)) return;
+    seen.add(k);
+    products.push({name, type, value: String(value), issuer:'', adminFee:'', comm:''});
+  }
+
+  const byRow = new Map();
+  for (const it of items) {
+    const k = it.page+'_'+Math.round(it.y/3)*3;
+    if (!byRow.has(k)) byRow.set(k,[]);
+    byRow.get(k).push(it);
+  }
+
+  const lines = [];
+  for (const [k, its] of byRow) {
+    const pg = parseInt(k.split('_')[0]);
+    const y  = parseInt(k.split('_')[1]);
+    lines.push({pg, y, its: its.sort((a,b)=>a.x-b.x)});
+  }
+  lines.sort((a,b) => a.pg!==b.pg ? a.pg-b.pg : b.y-a.y);
+
+  const pgSec = new Map();
+  for (const ln of lines) {
+    if (ln.y < 340 || ln.y > 470) continue;
+    const txt = ln.its.map(i=>i.str).join(' ');
+    const txtU = txt.trim().toUpperCase();
+    // Remove tudo que não é letra A-Z ou espaço para comparação sem acentos
+    const txtA = txtU.replace(/[^A-Z ]/g,'').trim();
+    if (txtA === 'ES' || txtA === 'AES' || txtA === 'AOES' || txtA === 'ACOES' || (ln.its.length===1 && txtA.length <= 5 && txtA.endsWith('ES'))) pgSec.set(ln.pg,'acoes');
+    else if (txtA === 'RENDA FIXA')                                            pgSec.set(ln.pg,'rf');
+    else if (/FUNDOS IMOBILI/i.test(txtU))                                     pgSec.set(ln.pg,'fii');
+    else if (/FUNDOS DE INVESTIMENTO/i.test(txtU))                             pgSec.set(ln.pg,'fundos');
+    else if (txtA === 'COE')                                                   pgSec.set(ln.pg,'coe');
+  }
+  let lastSec = null, lastPg = 0;
+  for (let pg = 1; pg <= 17; pg++) {
+    if (pgSec.has(pg)) { lastSec = pgSec.get(pg); lastPg = pg; }
+    else if (lastSec && pg === lastPg+1) pgSec.set(pg, lastSec);
+  }
+  console.log('[XP] pgSec:', JSON.stringify(Object.fromEntries(pgSec)));
+  console.log('[XP] lines total:', lines.length, 'pages:', [...new Set(lines.map(l=>l.pg))].sort((a,b)=>a-b));
+
+  const SKIP = /^(Ativo|Aplicação|Carência|Vencimento|Disponível|Garantia|Bloqueio|Valor|Posição|Taxa|Mercado|Judicial|Qtd|Data|Cota|Papel|Quantidade|Financeiro|Última|Rentabilidade|Preço)$/i;
+  const TICKER = /^[A-Z]{4}\d{1,2}$/;
+  const MONTH  = /^(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/\d{4}$/i;
+  let rfName = [];
+
+  for (const ln of lines) {
+    const sec = pgSec.get(ln.pg);
+    if (!sec) continue;
+    if (ln.y < 50 || ln.y > 470) continue;
+    const first = ln.its[0];
+    if (!first) continue;
+    const f = first.str.trim();
+
+    if (sec === 'acoes' || sec === 'fii') {
+      if (!TICKER.test(f) || first.x > 65) continue;
+      // Reconstrói o texto completo da linha e extrai o último valor monetário
+      const fullLine = ln.its.map(i=>i.str).join(' ');
+      // Procura todos os padrões de valor monetário na linha
+      const matches = fullLine.match(/[\d.,]+/g) || [];
+      // Pega o último número que parece um valor financeiro (tem vírgula e 2 decimais)
+      let v = 0;
+      for (let i = matches.length-1; i >= 0; i--) {
+        const candidate = matches[i];
+        if (/^\d{1,3}(\.\d{3})*,\d{2}$/.test(candidate)) {
+          v = parseFloat(candidate.replace(/\./g,'').replace(',','.'));
+          break;
+        }
+      }
+      // Se não achou com vírgula, tenta reconstruir dos últimos itens
+      if (v === 0) {
+        const lastItems = ln.its.slice(-4).map(i=>i.str).join('');
+        const m = lastItems.match(/([\d.]+,\d{2})/);
+        if (m) v = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+      }
+      console.log('[XP]', f, '| v:', v, '| fullLine:', fullLine.substring(0,80));
+      if (v > 0) add(f, sec==='fii'?'FII':'Ações', v);
+      continue;
+    }
+
+    if (sec === 'fundos') {
+      if (first.x > 65 || f.length < 4 || /^\d/.test(f) || SKIP.test(f)) continue;
+      const valIt = ln.its.find(i=>i.x>=660&&i.x<=682&&/R\$/.test(i.str));
+      if (!valIt) continue;
+      const v = toNum(valIt.str);
+      if (v > 0) add(f, 'Fundo Alta Taxa', v);
+      continue;
+    }
+
+    if (sec === 'coe') {
+      if (first.x > 65 || f.length < 4 || SKIP.test(f)) continue;
+      const valIt = ln.its.find(i=>i.x>=668&&i.x<=692&&/R\$/.test(i.str));
+      if (!valIt) continue;
+      const v = toNum(valIt.str);
+      if (v > 0) {
+        const nome = ln.its.filter(i=>i.x<320).map(i=>i.str).join(' ').trim();
+        add(nome||f, 'COE', v);
+      }
+      continue;
+    }
+
+    if (sec === 'rf') {
+      const valIt = ln.its.find(i=>i.x>=672&&i.x<=686&&/R\$/.test(i.str));
+      if (valIt) {
+        const v = toNum(valIt.str);
+        if (v > 0 && rfName.length > 0) add(rfName.join(' '), detectType(rfName.join(' ')), v);
+        rfName = [];
+        continue;
+      }
+      const hasDate = ln.its.some(i=>i.x>=130&&i.x<=150&&/\d{2}\/\d{2}\/\d{4}/.test(i.str));
+      if (hasDate) continue;
+      if (first.x < 65 && !/^\d/.test(f) && !/^R\$/.test(f) && !SKIP.test(f) && !MONTH.test(f)) {
+        const txt = ln.its.filter(i=>i.x<210).map(i=>i.str).join(' ').trim();
+        if (txt.length > 2) rfName.push(txt);
+      }
+    }
+  }
+
+  return products;
 }
 
 // ── Agrupa itens em linhas usando coordenada Y (mesmo Y = mesma linha visual) ──
@@ -1093,11 +1381,14 @@ function extractFromLines(lines) {
     'ETF','BDR','NOTA COMERCIAL',
   ];
 
+  // Regex para detectar tickers de ações/FIIs (ex: PETR4, VALE3, ALZR11)
+  const TICKER_RX = /^([A-Z]{4}\d{1,2})\s/;
+
   const VAL_RX = /(\d{1,3}(?:\.\d{3})*,\d{2})/g;
   function valsInLine(line) {
     const r=[]; let m; VAL_RX.lastIndex=0;
     while((m=VAL_RX.exec(line))!==null){
-      const v=parseFloat(m[1].replace(/\./g,'').replace(',','.')); if(v>=100)r.push(v);
+      const v=parseFloat(m[1].replace(/\./g,'').replace(',','.')); if(v>=50)r.push(v);
     }
     return r;
   }
@@ -1113,7 +1404,28 @@ function extractFromLines(lines) {
 
   for (let i=0;i<lines.length;i++) {
     if (CC_RX.test(lines[i])) continue;
-    const up=lines[i].toUpperCase();
+    const up = lines[i].toUpperCase().trim();
+
+    // Detecta tickers de ações/FIIs (PETR4, VALE3, ALZR11, etc.)
+    const tickerMatch = up.match(TICKER_RX);
+    if (tickerMatch) {
+      const ticker = tickerMatch[1];
+      // Pega o último valor da linha (posição atual)
+      const vs = valsInLine(lines[i]);
+      if (vs.length) {
+        const fVal = vs[vs.length - 1]; // último valor = posição
+        if (fVal >= 50) {
+          const key = `${ticker.toLowerCase()}|${Math.round(fVal)}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            const tipo = ticker.endsWith('11') || ticker.endsWith('12') ? 'FII' : 'Ações';
+            added.push({ val: fVal, name: ticker, type: tipo, issuer: '' });
+          }
+        }
+      }
+      continue;
+    }
+
     if (!KEYWORDS.some(k=>up.includes(k))) continue;
     let fVal=0;
     for (let j=i;j<=Math.min(i+4,lines.length-1);j++){
