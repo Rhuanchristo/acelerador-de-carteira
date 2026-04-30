@@ -55,44 +55,57 @@ main{padding-top:56px;min-height:100vh}
 .section-title span{color:var(--champagne);font-style:italic}
 .section-sub{font-size:13px;color:var(--cinza);margin-bottom:32px;line-height:1.7}
 
+/* FOCUS VISIBLE */
+:focus-visible{outline:2px solid var(--champagne);outline-offset:3px}
+
 /* UPLOAD */
-.upload-area{border:2px dashed rgba(44,74,62,0.2);border-radius:4px;padding:48px;text-align:center;cursor:pointer;background:white;transition:all .2s;margin-bottom:24px}
-.upload-area:hover,.upload-area.drag-over{border-color:var(--champagne);background:var(--champagne-dim)}
-.upload-icon{font-size:32px;margin-bottom:16px;opacity:.4}
+.upload-area{border:2px dashed rgba(44,74,62,0.2);border-radius:4px;padding:48px;text-align:center;cursor:pointer;background:white;transition:all .25s;margin-bottom:24px;position:relative;overflow:hidden}
+.upload-area::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 50%,rgba(201,169,110,0.06),transparent);opacity:0;transition:opacity .3s}
+.upload-area:hover,.upload-area.drag-over{border-color:var(--champagne);background:var(--champagne-dim);transform:translateY(-1px);box-shadow:0 8px 24px rgba(44,74,62,0.08)}
+.upload-area:hover::before,.upload-area.drag-over::before{opacity:1}
+.upload-area.drag-over{border-style:solid;border-color:var(--champagne);box-shadow:0 0 0 4px rgba(201,169,110,0.12),0 8px 24px rgba(44,74,62,0.08)}
+.upload-area:active{transform:translateY(0)}
+.upload-icon{font-size:36px;margin-bottom:16px;opacity:.4;transition:opacity .2s,transform .2s;display:block}
+.upload-area:hover .upload-icon{opacity:.7;transform:scale(1.1) translateY(-2px)}
 .upload-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--verde);margin-bottom:8px}
 .upload-sub{font-size:12px;color:var(--cinza);line-height:1.6}
 .upload-formats{display:flex;gap:8px;justify-content:center;margin-top:16px}
-.format-tag{padding:4px 12px;font-size:10px;letter-spacing:1px;background:var(--offwhite-dim);color:var(--cinza);border-radius:2px;text-transform:uppercase}
+.format-tag{padding:4px 12px;font-size:10px;letter-spacing:1px;background:var(--offwhite-dim);color:var(--cinza);border-radius:2px;text-transform:uppercase;transition:all .2s}
+.upload-area:hover .format-tag{background:rgba(201,169,110,0.15);color:var(--verde)}
 
 /* FORM */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px}
 .form-group{display:flex;flex-direction:column;gap:6px}
 .form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--champagne)}
-.form-input{padding:12px 16px;font-size:14px;font-family:'DM Sans',sans-serif;border:1px solid rgba(44,74,62,0.15);border-radius:2px;background:white;color:var(--carvao);transition:border-color .2s}
-.form-input:focus{outline:none;border-color:var(--champagne)}
+.form-input{padding:12px 16px;font-size:14px;font-family:'DM Sans',sans-serif;border:1px solid rgba(44,74,62,0.15);border-radius:2px;background:white;color:var(--carvao);transition:border-color .2s,box-shadow .2s}
+.form-input:focus{outline:none;border-color:var(--champagne);box-shadow:0 0 0 3px rgba(201,169,110,0.1)}
 
 /* BUTTONS */
-.btn{padding:10px 24px;font-size:12px;letter-spacing:2px;text-transform:uppercase;border:none;border-radius:2px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+.btn{padding:10px 24px;font-size:12px;letter-spacing:2px;text-transform:uppercase;border:none;border-radius:2px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:8px;min-height:40px}
 .btn-primary{background:var(--verde);color:var(--champagne)}
-.btn-primary:hover{background:var(--verde-mid)}
+.btn-primary:hover{background:var(--verde-mid);box-shadow:0 4px 12px rgba(44,74,62,0.2)}
 .btn-secondary{background:var(--offwhite-dim);color:var(--verde);border:1px solid rgba(44,74,62,0.2)}
 .btn-secondary:hover{background:var(--verde);color:var(--champagne)}
 .btn-ghost{background:transparent;color:var(--cinza);border:1px solid rgba(44,74,62,0.15)}
 .btn-ghost:hover{border-color:var(--red);color:var(--red)}
 .btn-large{padding:16px 40px;font-size:13px}
+.btn:active{transform:translateY(1px)}
 
 /* TABLE */
-.table-wrap{overflow-x:auto;margin-bottom:24px}
+.table-wrap{overflow-x:auto;margin-bottom:24px;border-radius:2px;box-shadow:0 1px 4px rgba(44,74,62,0.06)}
+.table-wrap::-webkit-scrollbar{height:4px}
+.table-wrap::-webkit-scrollbar-track{background:var(--offwhite-dim)}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--champagne);border-radius:2px;opacity:.5}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead{background:var(--verde)}
 thead th{color:var(--offwhite);padding:12px 16px;text-align:left;font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:400}
-tbody tr{border-bottom:1px solid rgba(44,74,62,0.07);background:white}
-tbody tr:hover{background:rgba(44,74,62,0.02)}
+tbody tr{border-bottom:1px solid rgba(44,74,62,0.07);background:white;transition:background .15s}
+tbody tr:hover{background:rgba(201,169,110,0.04)}
 tbody td{padding:11px 16px;color:var(--cinza);vertical-align:middle}
 tbody td:first-child{color:var(--carvao)}
-.td-input{padding:5px 8px;font-size:13px;border:1px solid transparent;border-radius:2px;background:transparent;width:100%;font-family:'DM Sans',sans-serif;color:var(--carvao)}
+.td-input{padding:5px 8px;font-size:13px;border:1px solid transparent;border-radius:2px;background:transparent;width:100%;font-family:'DM Sans',sans-serif;color:var(--carvao);transition:border-color .15s,background .15s}
 .td-input:focus{outline:none;border-color:var(--champagne);background:white}
-.td-select{padding:5px 8px;font-size:12px;border:1px solid transparent;border-radius:2px;background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--carvao);max-width:160px}
+.td-select{padding:5px 8px;font-size:12px;border:1px solid transparent;border-radius:2px;background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--carvao);max-width:160px;transition:border-color .15s,background .15s}
 .td-select:focus{outline:none;border-color:var(--champagne);background:white}
 
 /* BADGES */
@@ -391,12 +404,14 @@ tbody td:first-child{color:var(--carvao)}
     <div class="section-title">Importar <span>Carteira</span></div>
     <p class="section-sub">Faça upload do extrato em PDF ou CSV para importar automaticamente, ou adicione os produtos manualmente.</p>
 
-    <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
-      <div class="upload-icon">📎</div>
+    <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()"
+      role="button" tabindex="0" aria-label="Clique ou arraste um arquivo PDF ou CSV para importar"
+      onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('file-input').click()">
+      <span class="upload-icon">📎</span>
       <div class="upload-title">Arraste o arquivo ou clique para selecionar</div>
-      <p class="upload-sub">O sistema tentará extrair os produtos automaticamente.<br>Você poderá revisar e corrigir antes de gerar o relatório.</p>
+      <p class="upload-sub">O sistema extrai os produtos automaticamente via servidor.<br>Você poderá revisar e corrigir antes de gerar o relatório.</p>
       <div class="upload-formats">
-        <span class="format-tag">PDF</span>
+        <span class="format-tag">PDF XP</span>
         <span class="format-tag">CSV</span>
       </div>
     </div>
@@ -417,12 +432,12 @@ tbody td:first-child{color:var(--carvao)}
     <div class="divider-gold"></div>
 
     <!-- Products -->
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:16px;flex-wrap:wrap">
       <div>
         <div class="section-title" style="margin-bottom:4px">Produtos na <span>Carteira</span></div>
         <p style="font-size:12px;color:var(--cinza)">Adicione ou edite os produtos — revise as comissões estimadas</p>
       </div>
-      <button class="btn btn-secondary" onclick="addRow()" style="flex-shrink:0;margin-top:4px">+ Adicionar Produto</button>
+      <button class="btn btn-secondary" onclick="addRow()" style="flex-shrink:0;margin-top:4px" aria-label="Adicionar produto manualmente">+ Adicionar Produto</button>
     </div>
 
     <div class="table-wrap">

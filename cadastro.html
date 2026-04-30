@@ -4,11 +4,472 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="DENY">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=()">
 <title>Acelerador Patrimonial — Cadastro</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --verde:#2C4A3E;--verde-deep:#1a2e26;--verde-mid:#243d33;
+  --champagne:#C9A96E;--champagne-light:#DFC08A;--champagne-dim:rgba(201,169,110,0.12);
+  --offwhite:#F5F0E8;--offwhite-dim:#EDE8DF;
+  --carvao:#2A2A2A;--cinza:#8A8580;--cinza-light:#C5C0BB;
+  --red:#C0392B;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--offwhite);font-family:'DM Sans',sans-serif;color:var(--carvao);line-height:1.6;min-height:100vh}
+
+/* FOCUS VISIBLE */
+:focus-visible{outline:2px solid var(--champagne);outline-offset:3px}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--verde-deep);padding:0 48px;height:56px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,169,110,0.2)}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:4px;color:var(--offwhite);opacity:.8;text-transform:uppercase}
+.nav-tag{font-size:10px;letter-spacing:2px;color:var(--champagne);opacity:.6;text-transform:uppercase}
+
+/* PROGRESS BAR */
+.progress-bar{position:fixed;top:56px;left:0;right:0;z-index:99;height:2px;background:rgba(201,169,110,0.15)}
+.progress-fill{height:100%;background:var(--champagne);width:0%;transition:width .4s ease}
+
+/* HERO */
+.hero{background:var(--verde-deep);padding:80px 80px 64px;position:relative;overflow:hidden;margin-top:56px}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 30% 50%,rgba(201,169,110,0.06) 0%,transparent 70%)}
+.hero-eyebrow{font-size:9px;letter-spacing:6px;text-transform:uppercase;color:var(--champagne);margin-bottom:16px;opacity:.7;position:relative;animation:fadeUp .6s ease both}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(40px,5vw,64px);font-weight:300;color:var(--offwhite);line-height:1.1;margin-bottom:12px;position:relative;animation:fadeUp .6s .1s ease both}
+.hero-title span{color:var(--champagne);font-style:italic}
+.hero-sub{font-size:14px;color:var(--offwhite);opacity:.45;max-width:560px;line-height:1.8;position:relative;animation:fadeUp .6s .2s ease both}
+
+/* STEPS INDICATOR */
+.steps-indicator{display:flex;align-items:center;gap:0;margin-top:32px;position:relative;animation:fadeUp .6s .3s ease both}
+.si-step{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(245,240,232,0.35);transition:color .3s}
+.si-step.active{color:var(--champagne)}
+.si-step.done{color:rgba(201,169,110,0.5)}
+.si-num{width:20px;height:20px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .3s}
+.si-step.active .si-num{background:var(--champagne);border-color:var(--champagne);color:var(--verde-deep)}
+.si-step.done .si-num{background:rgba(201,169,110,0.2)}
+.si-line{width:32px;height:1px;background:rgba(201,169,110,0.2);margin:0 8px;flex-shrink:0}
+
+/* FORM WRAPPER */
+.form-section{max-width:680px;margin:0 auto;padding:64px 24px 80px}
+.section-label{font-size:9px;letter-spacing:5px;text-transform:uppercase;color:var(--champagne);margin-bottom:32px;opacity:.8;display:block}
+
+/* INPUTS */
+.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
+.form-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--champagne)}
+.input-wrap{position:relative}
+.form-input{
+  padding:14px 18px;font-size:16px;font-family:'DM Sans',sans-serif;
+  border:1px solid rgba(44,74,62,0.18);border-radius:2px;
+  background:white;color:var(--carvao);
+  transition:border-color .2s,box-shadow .2s,background .2s;
+  outline:none;width:100%;
+  -webkit-appearance:none;appearance:none
+}
+.form-input:focus{border-color:var(--champagne);box-shadow:0 0 0 3px rgba(201,169,110,0.12);background:#fffdf9}
+.form-input::placeholder{color:var(--cinza-light)}
+.form-input.error{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,57,43,0.08)}
+.form-input.valid{border-color:rgba(39,174,96,0.4)}
+.input-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;opacity:0;transition:opacity .2s}
+.form-input.valid ~ .input-icon{opacity:1}
+.field-error{font-size:11px;color:var(--red);margin-top:4px;display:none;animation:fadeIn .2s ease}
+
+/* DIVIDER */
+.divider-gold{height:1px;background:linear-gradient(90deg,transparent,var(--champagne),transparent);margin:40px 0}
+
+/* PATRIMONY CARDS */
+.pat-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--champagne);margin-bottom:16px;display:block}
+.pat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pat-card{cursor:pointer;position:relative}
+.pat-card input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.pat-card-inner{
+  padding:26px 22px 22px;
+  border:1px solid rgba(44,74,62,0.15);
+  border-radius:2px;background:white;
+  transition:border-color .18s,background .18s,box-shadow .18s,transform .15s;
+  display:flex;flex-direction:column;gap:5px;height:100%
+}
+.pat-card:hover .pat-card-inner{border-color:rgba(201,169,110,0.6);background:var(--champagne-dim);transform:translateY(-1px);box-shadow:0 4px 16px rgba(44,74,62,0.08)}
+.pat-card:active .pat-card-inner{transform:translateY(0);background:rgba(201,169,110,0.18)}
+.pat-card input:checked ~ .pat-card-inner{
+  border-color:var(--champagne);
+  background:var(--champagne-dim);
+  box-shadow:inset 0 0 0 1px var(--champagne),0 4px 16px rgba(201,169,110,0.15)
+}
+.pat-check{
+  position:absolute;top:14px;right:14px;
+  width:18px;height:18px;border-radius:50%;
+  border:1.5px solid var(--cinza-light);background:white;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;flex-shrink:0
+}
+.pat-card input:checked ~ .pat-card-inner .pat-check{background:var(--verde);border-color:var(--verde);box-shadow:0 0 0 3px rgba(44,74,62,0.12)}
+.pat-check-dot{width:6px;height:6px;border-radius:50%;background:var(--champagne);opacity:0;transition:opacity .15s,transform .15s;transform:scale(0)}
+.pat-card input:checked ~ .pat-card-inner .pat-check-dot{opacity:1;transform:scale(1)}
+.pat-range{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:400;color:var(--verde);line-height:1.25;padding-right:28px}
+.pat-desc{font-size:11px;color:var(--cinza);letter-spacing:.2px;line-height:1.5}
+.pat-err{font-size:11px;color:var(--red);margin-top:10px;display:none;animation:fadeIn .2s ease}
+
+/* SUBMIT */
+.submit-wrap{margin-top:40px}
+.btn-submit{
+  width:100%;padding:18px 40px;
+  font-size:12px;letter-spacing:3px;text-transform:uppercase;
+  border:none;border-radius:2px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-weight:500;min-height:56px;
+  background:var(--verde);color:var(--champagne);
+  transition:background .2s,transform .1s,box-shadow .2s;
+  position:relative;overflow:hidden
+}
+.btn-submit::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .2s}
+.btn-submit:hover{background:var(--verde-mid);box-shadow:0 4px 20px rgba(44,74,62,0.3)}
+.btn-submit:hover::after{background:rgba(255,255,255,0.04)}
+.btn-submit:active{transform:translateY(1px);box-shadow:none}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-submit .btn-text{transition:opacity .2s}
+.btn-submit .btn-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s}
+.btn-submit.loading .btn-text{opacity:0}
+.btn-submit.loading .btn-loading{opacity:1}
+.spinner{width:16px;height:16px;border:2px solid rgba(201,169,110,0.3);border-top-color:var(--champagne);border-radius:50%;animation:spin .7s linear infinite}
+
+.form-footer{text-align:center;margin-top:20px;font-size:12px;color:var(--cinza);line-height:1.7}
+.form-footer a{color:var(--champagne);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s}
+.form-footer a:hover{border-bottom-color:var(--champagne)}
+
+/* TRUST BADGES */
+.trust-row{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:28px;padding-top:24px;border-top:1px solid rgba(44,74,62,0.08)}
+.trust-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza)}
+.trust-icon{font-size:13px;opacity:.6}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* FORM ANIMATE IN */
+.form-section .form-group{animation:fadeUp .4s ease both}
+.form-section .form-group:nth-child(1){animation-delay:.05s}
+.form-section .form-group:nth-child(2){animation-delay:.1s}
+.form-section .form-group:nth-child(3){animation-delay:.15s}
+
+@media(max-width:768px){
+  nav{padding:0 16px}
+  .nav-brand{font-size:11px;letter-spacing:2px}
+  .nav-tag{display:none}
+
+  .hero{padding:44px 20px 36px}
+  .hero-eyebrow{font-size:8px;letter-spacing:4px}
+  .steps-indicator{gap:0;flex-wrap:nowrap}
+  .si-step span:not(.si-num){display:none}
+  .si-line{width:20px}
+
+  .form-section{padding:36px 20px 56px}
+  .section-label{font-size:8px;letter-spacing:4px;margin-bottom:24px}
+
+  .form-group{margin-bottom:20px}
+  .form-input{padding:13px 16px;font-size:16px}
+
+  .divider-gold{margin:28px 0}
+
+  .pat-grid{grid-template-columns:1fr}
+  .pat-card-inner{padding:20px 18px 18px}
+  .pat-range{font-size:17px}
+
+  .submit-wrap{margin-top:32px}
+  .btn-submit{font-size:11px;letter-spacing:2px;padding:16px 32px}
+
+  .form-footer{font-size:11px}
+  .trust-row{gap:12px;flex-wrap:wrap}
+  .trust-item{font-size:10px}
+}
+
+@media(max-width:400px){
+  .hero-title{font-size:clamp(32px,9vw,44px)}
+  .pat-range{font-size:16px}
+  .trust-row{flex-direction:column;gap:8px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">Acelerador Patrimonial</span>
+  <span class="nav-tag">Diagnóstico Patrimonial</span>
+</nav>
+
+<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+  <div class="progress-fill" id="progress-fill"></div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Bem-vindo</div>
+  <h1 class="hero-title">Seu <span>Diagnóstico</span><br>Começa Aqui</h1>
+  <p class="hero-sub">Preencha os dados abaixo para personalizarmos a análise da sua carteira de investimentos.</p>
+  <div class="steps-indicator" aria-label="Progresso">
+    <div class="si-step active" id="si-1">
+      <div class="si-num" aria-hidden="true">1</div>
+      <span>Identificação</span>
+    </div>
+    <div class="si-line" aria-hidden="true"></div>
+    <div class="si-step" id="si-2">
+      <div class="si-num" aria-hidden="true">2</div>
+      <span>Patrimônio</span>
+    </div>
+    <div class="si-line" aria-hidden="true"></div>
+    <div class="si-step" id="si-3">
+      <div class="si-num" aria-hidden="true">3</div>
+      <span>Diagnóstico</span>
+    </div>
+  </div>
+</div>
+
+<div class="form-section">
+  <span class="section-label" aria-hidden="true">Identificação</span>
+
+  <form id="lead-form" novalidate aria-label="Formulário de cadastro">
+
+    <div class="form-group">
+      <label class="form-label" for="f-nome">Nome completo</label>
+      <div class="input-wrap">
+        <input type="text" id="f-nome" class="form-input" placeholder="Ex: João da Silva"
+          autocomplete="name" aria-required="true" aria-describedby="err-nome" />
+        <span class="input-icon" aria-hidden="true">✓</span>
+      </div>
+      <span class="field-error" id="err-nome" role="alert">Informe seu nome completo.</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="f-email">E-mail</label>
+      <div class="input-wrap">
+        <input type="email" id="f-email" class="form-input" placeholder="seu@email.com"
+          autocomplete="email" aria-required="true" aria-describedby="err-email" />
+        <span class="input-icon" aria-hidden="true">✓</span>
+      </div>
+      <span class="field-error" id="err-email" role="alert">Informe um e-mail válido.</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="f-tel">Telefone / WhatsApp</label>
+      <div class="input-wrap">
+        <input type="tel" id="f-tel" class="form-input" placeholder="(11) 99999-9999"
+          autocomplete="tel" maxlength="15" aria-required="true" aria-describedby="err-tel" />
+        <span class="input-icon" aria-hidden="true">✓</span>
+      </div>
+      <span class="field-error" id="err-tel" role="alert">Informe um telefone com DDD.</span>
+    </div>
+
+    <div class="divider-gold" role="separator"></div>
+
+    <span class="pat-label" id="pat-label">Faixa de patrimônio investido</span>
+    <div class="pat-grid" role="radiogroup" aria-labelledby="pat-label">
+
+      <label class="pat-card">
+        <input type="radio" name="patrimonio" value="ate300k" aria-label="Até R$ 300 mil" />
+        <div class="pat-card-inner">
+          <div class="pat-check"><div class="pat-check-dot"></div></div>
+          <div class="pat-range">Até R$ 300 mil</div>
+          <div class="pat-desc">Início da jornada de acumulação</div>
+        </div>
+      </label>
+
+      <label class="pat-card">
+        <input type="radio" name="patrimonio" value="300k-1M" aria-label="R$ 300 mil a R$ 1 milhão" />
+        <div class="pat-card-inner">
+          <div class="pat-check"><div class="pat-check-dot"></div></div>
+          <div class="pat-range">R$ 300 mil a R$ 1 milhão</div>
+          <div class="pat-desc">Fase de acumulação acelerada</div>
+        </div>
+      </label>
+
+      <label class="pat-card">
+        <input type="radio" name="patrimonio" value="1M-5M" aria-label="R$ 1 milhão a R$ 5 milhões" />
+        <div class="pat-card-inner">
+          <div class="pat-check"><div class="pat-check-dot"></div></div>
+          <div class="pat-range">R$ 1 milhão a R$ 5 milhões</div>
+          <div class="pat-desc">Diversificação e proteção patrimonial</div>
+        </div>
+      </label>
+
+      <label class="pat-card">
+        <input type="radio" name="patrimonio" value="acima5M" aria-label="Acima de R$ 5 milhões" />
+        <div class="pat-card-inner">
+          <div class="pat-check"><div class="pat-check-dot"></div></div>
+          <div class="pat-range">Acima de R$ 5 milhões</div>
+          <div class="pat-desc">Gestão de grandes fortunas</div>
+        </div>
+      </label>
+
+    </div>
+    <span class="pat-err" id="err-pat" role="alert">Selecione uma faixa de patrimônio.</span>
+
+    <div class="submit-wrap">
+      <button type="submit" class="btn-submit" id="btn-submit" aria-live="polite">
+        <span class="btn-text">Iniciar Diagnóstico →</span>
+        <span class="btn-loading" aria-hidden="true">
+          <span class="spinner"></span>
+          Processando...
+        </span>
+      </button>
+    </div>
+
+    <p class="form-footer">
+      Seus dados são usados apenas para personalizar o relatório.<br>
+      Nenhuma informação é compartilhada com terceiros.
+    </p>
+
+    <div class="trust-row" aria-label="Garantias de segurança">
+      <div class="trust-item"><span class="trust-icon">🔒</span> Dados protegidos</div>
+      <div class="trust-item"><span class="trust-icon">📊</span> Análise gratuita</div>
+      <div class="trust-item"><span class="trust-icon">⚡</span> Resultado imediato</div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+const SUPABASE_URL = '';
+const SUPABASE_KEY = '';
+
+async function saveLead(payload) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (_) {}
+}
+
+// Progress bar baseada no preenchimento
+function updateProgress() {
+  const nome  = document.getElementById('f-nome').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const tel   = document.getElementById('f-tel').value.replace(/\D/g,'');
+  const pat   = document.querySelector('input[name=patrimonio]:checked');
+  let filled = 0;
+  if (nome.length >= 3) filled++;
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) filled++;
+  if (tel.length >= 10) filled++;
+  if (pat) filled++;
+  const pct = Math.round((filled / 4) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.querySelector('.progress-bar').setAttribute('aria-valuenow', pct);
+  // Steps indicator
+  if (filled >= 1) document.getElementById('si-1').classList.add('done');
+  if (filled >= 3) document.getElementById('si-2').classList.add('active');
+  if (filled >= 4) document.getElementById('si-2').classList.add('done');
+}
+
+// Validação inline com ícone ✓
+function validateField(input, condition) {
+  if (condition) {
+    input.classList.remove('error');
+    input.classList.add('valid');
+  } else {
+    input.classList.remove('valid');
+  }
+  updateProgress();
+}
+
+document.getElementById('f-nome').addEventListener('input', function() {
+  validateField(this, this.value.trim().length >= 3);
+});
+document.getElementById('f-email').addEventListener('input', function() {
+  validateField(this, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.value.trim()));
+});
+
+// Máscara de telefone
+document.getElementById('f-tel').addEventListener('input', function() {
+  let v = this.value.replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length <= 10) {
+    v = v.replace(/^(\d{0,2})(\d{0,4})(\d{0,4})$/, function(_, a, b, c) {
+      if (!a) return '';
+      var r = '(' + a;
+      if (b) r += ') ' + b;
+      if (c) r += '-' + c;
+      return r;
+    });
+  } else {
+    v = v.replace(/^(\d{2})(\d{5})(\d{0,4})$/, '($1) $2-$3');
+  }
+  this.value = v;
+  validateField(this, v.replace(/\D/g,'').length >= 10);
+});
+
+document.querySelectorAll('input[name=patrimonio]').forEach(r => {
+  r.addEventListener('change', updateProgress);
+});
+
+// Submit
+document.getElementById('lead-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const nome  = document.getElementById('f-nome');
+  const email = document.getElementById('f-email');
+  const tel   = document.getElementById('f-tel');
+  const pat   = document.querySelector('input[name=patrimonio]:checked');
+  let ok = true;
+
+  [nome, email, tel].forEach(el => { el.classList.remove('error'); });
+  document.querySelectorAll('.field-error, .pat-err').forEach(el => el.style.display = 'none');
+
+  if (nome.value.trim().length < 3) {
+    nome.classList.add('error'); nome.classList.remove('valid');
+    document.getElementById('err-nome').style.display = 'block';
+    ok = false;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
+    email.classList.add('error'); email.classList.remove('valid');
+    document.getElementById('err-email').style.display = 'block';
+    ok = false;
+  }
+  if (tel.value.replace(/\D/g, '').length < 10) {
+    tel.classList.add('error'); tel.classList.remove('valid');
+    document.getElementById('err-tel').style.display = 'block';
+    ok = false;
+  }
+  if (!pat) {
+    document.getElementById('err-pat').style.display = 'block';
+    ok = false;
+  }
+  if (!ok) {
+    // Scroll para o primeiro erro
+    const firstErr = document.querySelector('.error, .pat-err[style*="block"]');
+    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  // Loading state
+  const btn = document.getElementById('btn-submit');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  const lead = {
+    nome:             nome.value.trim(),
+    email:            email.value.trim(),
+    tel:              tel.value.trim(),
+    faixa_patrimonio: pat.value,
+  };
+
+  localStorage.setItem('ap_lead', JSON.stringify(lead));
+  saveLead(lead);
+
+  // Pequeno delay para feedback visual
+  setTimeout(() => {
+    window.location.href = 'analisador-carteira.html';
+  }, 600);
+});
+</script>
+</body>
+</html>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
