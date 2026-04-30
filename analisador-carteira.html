@@ -418,17 +418,6 @@ tbody td:first-child{color:var(--carvao)}
     <input type="file" id="file-input" accept=".pdf,.csv" style="display:none" onchange="handleFile(this)" />
     <div id="parse-status" class="parse-status"></div>
 
-    <!-- Importar JSON -->
-    <div style="text-align:center;margin:20px 0;padding:16px;background:rgba(201,169,110,0.05);border-radius:4px;border:1px solid rgba(201,169,110,0.2)">
-      <p style="font-size:12px;color:var(--cinza);margin-bottom:12px">
-        <strong>Alternativa:</strong> Se o PDF não foi extraído automaticamente, use o script Python para gerar o JSON
-      </p>
-      <button class="btn btn-secondary" onclick="document.getElementById('json-input').click()" style="font-size:11px;padding:10px 20px">
-        📥 Importar JSON Extraído
-      </button>
-      <input type="file" id="json-input" accept=".json" style="display:none" onchange="handleJSON(this)" />
-    </div>
-
     <div class="divider-gold"></div>
 
     <!-- Products -->
