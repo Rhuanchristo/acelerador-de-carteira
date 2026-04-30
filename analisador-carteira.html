@@ -1512,6 +1512,29 @@ function genReport() {
   const maxBar = Math.max(c10,f10)*1.1||1;
   const bh = v => Math.max(4,Math.round(v/maxBar*160));
 
+  // ── Juros compostos — impacto real da diferença de taxa ──
+  // Retorno bruto anual assumido (CDI + spread médio de carteira diversificada)
+  const RETORNO_BRUTO = 0.12; // 12% a.a.
+  // Patrimônio futuro: P × (1 + r - custo)^n
+  const patFutComm5  = total * Math.pow(1 + RETORNO_BRUTO - avgCommPct, 5);
+  const patFutComm10 = total * Math.pow(1 + RETORNO_BRUTO - avgCommPct, 10);
+  const patFutComm20 = total * Math.pow(1 + RETORNO_BRUTO - avgCommPct, 20);
+  const patFutFee5   = total * Math.pow(1 + RETORNO_BRUTO - feePct, 5);
+  const patFutFee10  = total * Math.pow(1 + RETORNO_BRUTO - feePct, 10);
+  const patFutFee20  = total * Math.pow(1 + RETORNO_BRUTO - feePct, 20);
+  // Diferença = o que o cliente deixa de acumular por pagar mais caro
+  const diffComp5    = patFutFee5  - patFutComm5;
+  const diffComp10   = patFutFee10 - patFutComm10;
+  const diffComp20   = patFutFee20 - patFutComm20;
+  // Custo acumulado real (juros compostos sobre o custo anual reinvestido)
+  // FV de anuidade: custo × [(1+r)^n - 1] / r
+  const r = RETORNO_BRUTO;
+  const fvComm5  = totComm * (Math.pow(1+r,5)  - 1) / r;
+  const fvComm10 = totComm * (Math.pow(1+r,10) - 1) / r;
+  const fvFee5   = feeA    * (Math.pow(1+r,5)  - 1) / r;
+  const fvFee10  = feeA    * (Math.pow(1+r,10) - 1) / r;
+  const fvSaving10 = fvComm10 - fvFee10;
+
   // ── Product rows agrupados por tipo ──
   const prodRows = (() => {
     // Monta grupos mantendo a ordem de TIPOS como referência
@@ -1762,7 +1785,7 @@ ${highRisk.length ? `
 <div class="rep-section dark">
   <div class="rep-eye">Impacto Financeiro</div>
   <div class="rep-title" style="color:var(--offwhite)">Quanto você perde <span>ao longo do tempo</span></div>
-  <div class="rep-desc">Projeção acumulada do custo no modelo atual versus o modelo fee-based. Valores sem considerar juros compostos sobre a economia — o impacto real é ainda maior.</div>
+  <div class="rep-desc">Projeção com juros compostos (retorno bruto assumido: 12% a.a.). A diferença de taxa entre os modelos se multiplica exponencialmente — cada real pago a mais em comissão deixa de crescer no seu patrimônio.</div>
 
   <div class="kpi-grid">
     <div class="kpi-box" style="background:rgba(255,255,255,0.04);border:1px solid rgba(201,169,110,0.1)">
@@ -1771,21 +1794,67 @@ ${highRisk.length ? `
       <div class="kpi-lbl" style="color:rgba(245,240,232,0.35)">Custo atual / ano</div>
     </div>
     <div class="kpi-box" style="background:rgba(192,57,43,0.1);border:none">
-      <div class="kpi-num" style="color:#e88080">${BRL(c5)}</div>
-      <div class="kpi-lbl" style="color:rgba(245,240,232,0.35)">Custo acumulado — 5 anos</div>
+      <div class="kpi-num" style="color:#e88080">${BRL(fvComm5)}</div>
+      <div style="font-size:10px;color:rgba(245,240,232,0.4);margin-top:4px">linear: ${BRL(c5)}</div>
+      <div class="kpi-lbl" style="color:rgba(245,240,232,0.35)">Custo real — 5 anos (c/ juros)</div>
     </div>
     <div class="kpi-box" style="background:rgba(192,57,43,0.18);border:none">
-      <div class="kpi-num" style="color:#e88080">${BRL(c10)}</div>
-      <div class="kpi-lbl" style="color:rgba(245,240,232,0.35)">Custo acumulado — 10 anos</div>
+      <div class="kpi-num" style="color:#e88080">${BRL(fvComm10)}</div>
+      <div style="font-size:10px;color:rgba(245,240,232,0.4);margin-top:4px">linear: ${BRL(c10)}</div>
+      <div class="kpi-lbl" style="color:rgba(245,240,232,0.35)">Custo real — 10 anos (c/ juros)</div>
     </div>
     <div class="kpi-box" style="background:var(--champagne-dim);border:1px solid rgba(201,169,110,0.2)">
-      <div class="kpi-num" style="color:var(--champagne)">${BRL(s10)}</div>
-      <div class="kpi-lbl" style="color:rgba(245,240,232,0.35)">Economia total em 10 anos</div>
+      <div class="kpi-num" style="color:var(--champagne)">${BRL(fvSaving10)}</div>
+      <div style="font-size:10px;color:rgba(245,240,232,0.4);margin-top:4px">linear: ${BRL(s10)}</div>
+      <div class="kpi-lbl" style="color:rgba(245,240,232,0.35)">Economia real em 10 anos (c/ juros)</div>
     </div>
   </div>
 
+  <!-- Projeção patrimonial com juros compostos -->
+  ${total > 0 && savingPct > 0 ? `
   <div style="background:rgba(255,255,255,0.04);padding:32px;border-radius:2px;margin-top:24px">
-    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--champagne);margin-bottom:20px;opacity:.7">Comparativo Visual — Custo Acumulado</div>
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--champagne);margin-bottom:6px;opacity:.7">Projeção Patrimonial — Juros Compostos (12% a.a. bruto)</div>
+    <div style="font-size:12px;color:rgba(245,240,232,0.4);margin-bottom:24px">Quanto seu patrimônio de ${BRL(total)} vale no futuro em cada modelo</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+      <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.03);border-radius:2px;border:1px solid rgba(201,169,110,0.1)">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(245,240,232,0.4);margin-bottom:12px">5 Anos</div>
+        <div style="font-size:13px;color:#e88080;margin-bottom:4px">${BRL(patFutComm5)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.3);margin-bottom:8px">Modelo atual</div>
+        <div style="font-size:13px;color:#88d4a8;margin-bottom:4px">${BRL(patFutFee5)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.3);margin-bottom:12px">Modelo fee</div>
+        <div style="height:1px;background:rgba(201,169,110,0.2);margin-bottom:12px"></div>
+        <div style="font-size:16px;font-weight:600;color:var(--champagne)">+${BRL(diffComp5)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.4)">diferença</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.05);border-radius:2px;border:1px solid rgba(201,169,110,0.2)">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(245,240,232,0.4);margin-bottom:12px">10 Anos</div>
+        <div style="font-size:13px;color:#e88080;margin-bottom:4px">${BRL(patFutComm10)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.3);margin-bottom:8px">Modelo atual</div>
+        <div style="font-size:13px;color:#88d4a8;margin-bottom:4px">${BRL(patFutFee10)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.3);margin-bottom:12px">Modelo fee</div>
+        <div style="height:1px;background:rgba(201,169,110,0.2);margin-bottom:12px"></div>
+        <div style="font-size:20px;font-weight:600;color:var(--champagne)">+${BRL(diffComp10)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.4)">diferença</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:rgba(255,255,255,0.06);border-radius:2px;border:1px solid rgba(201,169,110,0.3)">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(245,240,232,0.4);margin-bottom:12px">20 Anos</div>
+        <div style="font-size:13px;color:#e88080;margin-bottom:4px">${BRL(patFutComm20)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.3);margin-bottom:8px">Modelo atual</div>
+        <div style="font-size:13px;color:#88d4a8;margin-bottom:4px">${BRL(patFutFee20)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.3);margin-bottom:12px">Modelo fee</div>
+        <div style="height:1px;background:rgba(201,169,110,0.2);margin-bottom:12px"></div>
+        <div style="font-size:24px;font-weight:600;color:var(--champagne)">+${BRL(diffComp20)}</div>
+        <div style="font-size:10px;color:rgba(245,240,232,0.4)">diferença</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:rgba(245,240,232,0.25);text-align:center;line-height:1.6">
+      * Projeção assumindo retorno bruto de 12% a.a., patrimônio constante e sem aportes adicionais.<br>
+      A diferença real pode ser maior dependendo da rentabilidade dos produtos escolhidos.
+    </div>
+  </div>` : ''}
+
+  <div style="background:rgba(255,255,255,0.04);padding:32px;border-radius:2px;margin-top:24px">
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--champagne);margin-bottom:20px;opacity:.7">Comparativo Visual — Custo Acumulado (juros compostos)</div>
     <div class="legend">
       <div style="display:flex;align-items:center;gap:8px"><div class="leg-dot" style="background:rgba(192,57,43,0.7)"></div><span class="leg-txt">Modelo Atual</span></div>
       <div style="display:flex;align-items:center;gap:8px"><div class="leg-dot" style="background:var(--verde)"></div><span class="leg-txt">Modelo Fee-Based</span></div>
@@ -1809,8 +1878,8 @@ ${highRisk.length ? `
       <div class="c-item"><span class="c-lbl">Transparência</span><span class="c-val red">Opaca</span></div>
       <div class="c-item"><span class="c-lbl">Conflito de interesse</span><span class="c-val red">Alto</span></div>
       <div class="c-item"><span class="c-lbl">Cashback ao cliente</span><span class="c-val red">Nenhum</span></div>
-      <div class="c-item"><span class="c-lbl">Custo em 5 anos</span><span class="c-val red">${BRL(c5)}</span></div>
-      <div class="c-item"><span class="c-lbl">Custo em 10 anos</span><span class="c-val red">${BRL(c10)}</span></div>
+      <div class="c-item"><span class="c-lbl">Custo em 5 anos (c/ juros)</span><span class="c-val red">${BRL(fvComm5)}</span></div>
+      <div class="c-item"><span class="c-lbl">Custo em 10 anos (c/ juros)</span><span class="c-val red">${BRL(fvComm10)}</span></div>
     </div>
     <div class="compare-col new">
       <div class="col-title">Modelo ${esc(BRAND.name)} — Fee-Based</div>
@@ -1821,16 +1890,31 @@ ${highRisk.length ? `
       <div class="c-item"><span class="c-lbl">Transparência</span><span class="c-val green">Total</span></div>
       <div class="c-item"><span class="c-lbl">Conflito de interesse</span><span class="c-val green">Zero</span></div>
       <div class="c-item"><span class="c-lbl">Cashback ao cliente</span><span class="c-val green">100% das comissões de produto</span></div>
-      <div class="c-item"><span class="c-lbl">Custo em 5 anos</span><span class="c-val green">${BRL(f5)}</span></div>
-      <div class="c-item"><span class="c-lbl">Custo em 10 anos</span><span class="c-val green">${BRL(f10)}</span></div>
+      <div class="c-item"><span class="c-lbl">Custo em 5 anos (c/ juros)</span><span class="c-val green">${BRL(fvFee5)}</span></div>
+      <div class="c-item"><span class="c-lbl">Custo em 10 anos (c/ juros)</span><span class="c-val green">${BRL(fvFee10)}</span></div>
     </div>
   </div>
   ${saving>0 ? `
   <div class="savings-box">
-    <div style="font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--champagne);opacity:.6;margin-bottom:12px">Economia Total em 10 Anos</div>
-    <div class="sav-num">${BRL(s10)}</div>
+    <div style="font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--champagne);opacity:.6;margin-bottom:12px">Economia Real em 10 Anos (Juros Compostos)</div>
+    <div class="sav-num">${BRL(fvSaving10)}</div>
     <div style="font-size:14px;font-weight:600;color:var(--champagne);margin:6px 0;letter-spacing:1px">${savingPct>=0?'+':''}${F2(Math.abs(savingPct))} ao ano de diferença entre os modelos</div>
     <div class="sav-lbl">Esse valor permanece no seu patrimônio, não no bolso do assessor</div>
+    <div style="margin-top:20px;display:flex;gap:32px;justify-content:center;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:11px;color:rgba(245,240,232,0.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">5 anos</div>
+        <div style="font-size:20px;color:var(--champagne-light);font-weight:300">+${BRL(diffComp5)}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:rgba(245,240,232,0.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">10 anos</div>
+        <div style="font-size:20px;color:var(--champagne-light);font-weight:300">+${BRL(diffComp10)}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:rgba(245,240,232,0.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">20 anos</div>
+        <div style="font-size:24px;color:var(--champagne);font-weight:600">+${BRL(diffComp20)}</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:11px;color:rgba(245,240,232,0.25)">* Retorno bruto assumido: 12% a.a. | Patrimônio constante sem aportes</div>
   </div>` : `
   <div class="alert-box alert-info" style="margin-top:24px">
     <strong>Observação:</strong> Para este nível de patrimônio, a diferença de custo entre modelos é reduzida. O valor principal está na qualidade dos produtos indicados, na ausência de conflitos de interesse e no cashback das comissões.
